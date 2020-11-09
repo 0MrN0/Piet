@@ -1,18 +1,18 @@
 from PIL import Image
-from picture_program.pixel import Pixel
-from typing import List
+from interpreter.pixel import Pixel
+from typing import List, Tuple
 
 
 class Picture:
     def __init__(self, picture: List[List[Pixel]]):
         self.picture = picture
-        self.width = len(self.picture)
-        self.height = len(self.picture[0])
+        self.width: int = len(self.picture)
+        self.height: int = len(self.picture[0])
 
-    def __getitem__(self, cord):
+    def __getitem__(self, cord) -> Pixel:
         return self.picture[cord[0]][cord[1]]
 
-    def __iter__(self):
+    def __iter__(self) -> Tuple[int, int, Pixel]:
         for i in range(self.width):
             for j in range(self.height):
                 yield j, i, self[j, i]

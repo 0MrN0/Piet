@@ -22,7 +22,7 @@ class Cycle:
     def __init__(self, cycle: []):
         self.cycle = cycle
 
-    def get_next(self, item: IntEnum):
+    def get_next(self, item: IntEnum) -> IntEnum:
         if item == len(self.cycle) - 1:
             return self.cycle[0]
         return self.cycle[item + 1]
