@@ -8,4 +8,4 @@ class Pixel:
         self.color = color
 
     def __repr__(self):
-        return 'x: ' + str(self.x) + ' y: ' + str(self.y) + ' color: ' + str(self.color)
+        return f'x: {self.x} y: {self.y} color: {self.color}'

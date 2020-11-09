@@ -1,9 +1,10 @@
 from PIL import Image
 from picture_program.pixel import Pixel
+from typing import List
 
 
 class Picture:
-    def __init__(self, picture: [[Pixel]]):
+    def __init__(self, picture: List[List[Pixel]]):
         self.picture = picture
         self.width = len(self.picture)
         self.height = len(self.picture[0])
