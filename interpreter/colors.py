@@ -20,16 +20,19 @@ class Lightness(IntEnum):
 
 
 class Color():
-    def __init__(self, rgb: Tuple[int, int, int], hue: Hue, lightness: Lightness):
-        self.rgb = rgb
-        self.hue = hue
-        self.lightness = lightness
+    def __init__(self, rgb: Tuple[int, int, int]):
+        if len(rgb) == 4:
+            self.rgb = rgb[:-1]
+        else:
+            self.rgb = rgb
+        self.lightness = colors[self.rgb][0]
+        self.hue = colors[self.rgb][1]
 
     def __eq__(self, other):
         return self.rgb == other.rgb
 
 
-Colors = {(255, 192, 192): (Lightness.LIGHT, Hue.RED),
+colors = {(255, 192, 192): (Lightness.LIGHT, Hue.RED),
           (255, 255, 192): (Lightness.LIGHT, Hue.YELLOW),
           (192, 255, 192): (Lightness.LIGHT, Hue.GREEN),
           (192, 255, 255): (Lightness.LIGHT, Hue.CYAN),

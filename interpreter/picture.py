@@ -1,6 +1,6 @@
 from PIL import Image
 from interpreter.pixel import Pixel
-from interpreter.colors import Colors, Color
+from interpreter.colors import Color
 from typing import List, Tuple
 
 
@@ -26,8 +26,7 @@ class Picture:
             for i in range(pic.size[0]):
                 for j in range(pic.size[1]):
                     rgb = pic.getpixel((i, j))
-                    row.append(Pixel(
-                        i, j, Color(rgb, Colors[rgb][1], Colors[rgb][0])))
+                    row.append(Pixel(i, j, Color(rgb)))
                     if j == pic.size[1] - 1:
                         rows.append(row)
                         row = []

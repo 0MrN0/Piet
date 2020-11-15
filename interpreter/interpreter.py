@@ -1,9 +1,8 @@
 from collections import deque
-from typing import Set, List, Tuple, Dict
+from typing import Set, List, Tuple
 
 from interpreter.picture import Picture
 from interpreter.pixel import Pixel
-from interpreter.colors import Hue, Lightness
 
 
 class Interpreter:
@@ -19,22 +18,27 @@ class Interpreter:
                          (5, 0): self.in_char, (5, 1): self.out_int,
                          (5, 2): self.out_char}
         self.picture = picture
+        # сдвиг по оси х, сдвиг по оси y: (1, 0), (0, 1), (-1, 0), (0, -1)
         self.dp: Tuple[int, int] = (1, 0)
+        # -1 - лево, 1 - право
         self.cc = -1
         self.in_process = True
         self.stack: List[int] = []
         self.current_pixel = picture[0, 0]
-        self.current_block: Set[Pixel] = set()
+        self.current_block: List[Pixel] = []
         self.set_current_block()
+        
+    def change_picture(self, picture: Picture):
+        self.picture = picture
 
     def set_current_block(self):
         self.current_block.clear()
-        visited: Set[Pixel] = set()
+        visited: Set[(int, int)] = set()
         queue: deque[Pixel] = deque()
         queue.append(self.current_pixel)
         while len(queue) != 0:
             current_pixel = queue.popleft()
-            visited.add(current_pixel)
+            visited.add((current_pixel.x, current_pixel.y))
             for dx in range(-1, 2):
                 for dy in range(-1, 2):
                     if dx != 0 and dy != 0:
@@ -44,10 +48,11 @@ class Interpreter:
                     if x >= self.picture.width or x < 0 or y >= self.picture.height or y < 0:
                         continue
                     pixel = self.picture[x, y]
-                    if pixel in visited or pixel.color != self.current_pixel.color:
+                    if (x, y) in visited or pixel.color != self.current_pixel.color:
                         continue
                     queue.append(pixel)
-        self.current_block = visited
+        for cords in visited:
+            self.current_block.append(self.picture[cords[0], cords[1]])
 
     def find_uttermost_pixel_by_dp(self):
         if self.dp[0] + self.dp[1] == 1:
@@ -81,7 +86,7 @@ class Interpreter:
         while True:
             x = self.current_pixel.x + corner_direction[0]
             y = self.current_pixel.y + corner_direction[1]
-            if self.is_correct_cords(x, y) and self.picture[x, y] in self.current_block:
+            if self.is_correct_cords(x, y) and self.picture[x, y].color == self.current_block[0].color:
                 self.current_pixel = self.picture[x, y]
             else:
                 break
@@ -89,26 +94,6 @@ class Interpreter:
     def is_correct_cords(self, x: int, y: int) -> bool:
         return (0 <= x < self.picture.width
                 and 0 <= y < self.picture.height)
-
-    def go_to_next_block(self, next_pixel: Pixel):
-        if next_pixel.color.rgb == (255, 255, 255):
-            turns_count = 0
-            while True:
-                if turns_count == 8:
-                    self.in_process = False
-                    return
-                x = next_pixel.x + self.dp[0]
-                y = next_pixel.y + self.dp[1]
-                if self.is_correct_cords(x, y):
-                    next_pixel = self.picture[x, y]
-                    if next_pixel.color.rgb != (255, 255, 255) and next_pixel.color.rgb != (0, 0, 0):
-                        break
-                self.turn_dp(1)
-                turns_count += 1
-        hue_shift = abs(self.current_pixel.color.hue - next_pixel.color.hue)
-        lightness_shift = abs(self.current_pixel.color.lightness
-                              - next_pixel.color.lightness)
-        self.commands[hue_shift, lightness_shift]()
 
     def push(self):
         self.stack.append(len(self.current_block))
@@ -139,6 +124,7 @@ class Interpreter:
         a = self.stack.pop()
         b = self.stack.pop()
         if index != -1:
+            a = abs(a) if index == 1 else a
             self.stack.append(operation(b, a)[index])
             return
         self.stack.append(operation(b, a))
@@ -161,14 +147,14 @@ class Interpreter:
             return
         turn_count = self.stack.pop()
         k = 1 if turn_count > 0 else -1
-        for i in range(turn_count):
+        for i in range(abs(turn_count)):
             self.turn_dp(k)
 
     def switch(self):
         if len(self.stack) == 0:
             return
         turn_count = self.stack.pop()
-        for i in range(turn_count):
+        for i in range(abs(turn_count)):
             self.cc *= -1
 
     def duplicate(self):
@@ -176,7 +162,8 @@ class Interpreter:
             return
         self.stack.append(self.stack[len(self.stack) - 1])
 
-    def roll(self): # берем depth последних элементов листа и прокручиваем их с шагом count
+    # берем depth последних элементов листа и прокручиваем их с шагом count
+    def roll(self):
         if len(self.stack) < 2:
             return
         count = self.stack.pop()
@@ -213,7 +200,8 @@ class Interpreter:
         except ValueError:
             return
 
-    def turn_dp(self, k: int): #k = -1 - против часовой стрелки, k = 1 - по часовой
+    # k = -1 - против часовой стрелки, k = 1 - по часовой
+    def turn_dp(self, k: int):
         if self.dp[0] == 0:
             x = self.dp[1] * (-k)
             y = 0
@@ -222,18 +210,44 @@ class Interpreter:
             y = self.dp[0] * k
         self.dp = (x, y)
 
+    def go_to_next_block(self, next_pixel: Pixel):
+        if next_pixel.color.rgb == (255, 255, 255):
+            turns_count = 0
+            while True:
+                if turns_count == 8:
+                    self.in_process = False
+                    return
+                x = next_pixel.x + self.dp[0]
+                y = next_pixel.y + self.dp[1]
+                if self.is_correct_cords(x, y):
+                    next_pixel = self.picture[x, y]
+                    if (next_pixel.color.rgb != (255, 255, 255)
+                            and next_pixel.color.rgb != (0, 0, 0)):
+                        break
+                self.turn_dp(1)
+                turns_count += 1
+        hue_shift = abs(self.current_pixel.color.hue - next_pixel.color.hue)
+        lightness_shift = abs(
+            self.current_pixel.color.lightness - next_pixel.color.lightness)
+        self.commands[hue_shift, lightness_shift]()
+
     def process_picture(self):
         while True:
             for k in range(8):
-                self.find_uttermost_pixel_by_dp()  # 1. найти самый крайний пиксель от текущего пикселя по направлению dp в рамках текущего блока
-                self.find_uttermost_pixel_by_cc()  # 2. в зависимости от сс выбрать угловой пиксель
+                # 1. найти самый крайний пиксель от текущего пикселя по направлению dp в рамках текущего блока
+                self.find_uttermost_pixel_by_dp()
+                # 2. в зависимости от сс выбрать угловой пиксель
+                self.find_uttermost_pixel_by_cc()
+                # 4. если можно, пройти в следующий блок по направлению dp и выйти из цикла иначе
                 x = self.current_pixel.x + self.dp[0]
                 y = self.current_pixel.y + self.dp[1]
-                if self.is_correct_cords(x, y) and self.picture[x, y].color.rgb != (0, 0, 0):
+                if (self.is_correct_cords(x, y)
+                        and self.picture[x, y].color.rgb != (0, 0, 0)):
                     next_pixel = self.picture[x, y]
                     self.go_to_next_block(next_pixel)
-                    break# 4. если можно, пройти в следующий блок по направлению dp и выйти из цикла иначе
+                    break
+                # 5. если k % 2 == 0 изменить cc, иначе изменить dp;
                 elif k % 2 == 0:
                     self.cc *= -1
                 else:
-                    self.turn_dp(1)# 5. если k % 2 == 0 изменить cc, иначе изменить dp;
+                    self.turn_dp(1)
