@@ -1,8 +1,8 @@
-from typing import Tuple
+from interpreter.colors import Color
 
 
 class Pixel:
-    def __init__(self, x: int, y: int, color: Tuple[int, int, int]):
+    def __init__(self, x: int, y: int, color: Color):
         self.x = x
         self.y = y
         self.color = color
