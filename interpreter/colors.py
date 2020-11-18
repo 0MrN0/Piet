@@ -14,9 +14,9 @@ class Hue(IntEnum):
 
 
 class Lightness(IntEnum):
-    DARK = 0
+    LIGHT = 0
     NORMAL = 1
-    LIGHT = 2
+    DARK = 2
 
 
 class Color():
@@ -30,6 +30,9 @@ class Color():
 
     def __eq__(self, other):
         return self.rgb == other.rgb
+
+    def __repr__(self):
+        return f'rgb: {self.rgb}'
 
 
 colors = {(255, 192, 192): (Lightness.LIGHT, Hue.RED),
