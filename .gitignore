@@ -1,5 +1,5 @@
 .idea
 venv
 __pycache__
+pseudocode
 pytest_cache
-main.py
