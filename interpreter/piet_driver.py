@@ -5,7 +5,7 @@ from interpreter.picture import Picture
 from interpreter.pixel import Pixel
 
 
-class Interpreter:
+class PietDriver:
     def __init__(self, picture: Picture):
         # (сдвиг оттенка, сдвиг яркости) : команда
         self.commands = {(0, 0): None, (0, 1): self.push, (0, 2): self.pop,
@@ -162,13 +162,13 @@ class Interpreter:
             return
         self.stack.append(self.stack[len(self.stack) - 1])
 
-    # берем depth последних элементов листа и прокручиваем их с шагом count
+    # берем depth последних элементов листа и прокручиваем их с шагом count, -count - влево, +count - вправо
     def roll(self):
-        if len(self.stack) < 2:
+        if len(self.stack) < 2 or self.stack[-2] < 0:
             return
         count = self.stack.pop()
         depth = self.stack.pop()
-        if depth < 2:
+        if depth == 1:
             return
         count %= depth
         _ = -abs(count) + depth * (count < 0)
@@ -200,14 +200,14 @@ class Interpreter:
         except ValueError:
             return
 
-    # k = -1 - против часовой стрелки, k = 1 - по часовой
-    def turn_dp(self, k: int):
+    # direction = -1 - против часовой стрелки, direction = 1 - по часовой
+    def turn_dp(self, direction: int):
         if self.dp[0] == 0:
-            x = self.dp[1] * (-k)
+            x = self.dp[1] * (-direction)
             y = 0
         else:
             x = 0
-            y = self.dp[0] * k
+            y = self.dp[0] * direction
         self.dp = (x, y)
 
     def go_to_next_block(self, next_pixel: Pixel):
