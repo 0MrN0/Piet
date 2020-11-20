@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 ## Запуск
 ```bash
-python __main__.py *picture_name*
+python __main__.py picture_name
 ```
 
 где picture_name - путь до программы.
