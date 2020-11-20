@@ -1,17 +1,19 @@
 from PIL import Image
-from picture_program.pixel import Pixel
+from interpreter.pixel import Pixel
+from interpreter.colors import Color
+from typing import List, Tuple
 
 
 class Picture:
-    def __init__(self, picture: [[Pixel]]):
+    def __init__(self, picture: List[List[Pixel]]):
         self.picture = picture
-        self.width = len(self.picture)
-        self.height = len(self.picture[0])
+        self.width: int = len(self.picture)
+        self.height: int = len(self.picture[0])
 
-    def __getitem__(self, cord):
+    def __getitem__(self, cord) -> Pixel:
         return self.picture[cord[0]][cord[1]]
 
-    def __iter__(self):
+    def __iter__(self) -> Tuple[int, int, Pixel]:
         for i in range(self.width):
             for j in range(self.height):
                 yield j, i, self[j, i]
@@ -23,7 +25,8 @@ class Picture:
         with Image.open(file_name) as pic:
             for i in range(pic.size[0]):
                 for j in range(pic.size[1]):
-                    row.append(Pixel(i, j, pic.getpixel((i, j))))
+                    rgb = pic.getpixel((i, j))
+                    row.append(Pixel(i, j, Color(rgb)))
                     if j == pic.size[1] - 1:
                         rows.append(row)
                         row = []
