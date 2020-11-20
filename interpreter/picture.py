@@ -22,7 +22,7 @@ class Picture:
     def open_picture(cls, file_name: str):
         rows = []
         row = []
-        with Image.open(f'programs/{file_name}') as pic:
+        with Image.open(file_name) as pic:
             for i in range(pic.size[0]):
                 for j in range(pic.size[1]):
                     rgb = pic.getpixel((i, j))
