@@ -10,7 +10,7 @@ pip install -r requirements.txt
 
 ## Запуск
 ```bash
-python interpriter picture_name
+python -m interpreter picture_name
 ```
 
 где picture_name - путь до программы.
