@@ -1,8 +1,33 @@
-from collections import deque
 from typing import Set, List, Tuple
+from enum import Enum, IntEnum
 
-from interpreter.picture import Picture
-from interpreter.pixel import Pixel
+from interpreter.colors import Hue
+from interpreter.picture import Picture, Pixel
+
+
+class Direction(Enum):
+    RIGHT = (1, 0)
+    DOWN = (0, 1)
+    LEFT = (-1, 0)
+    UP = (0, -1)
+
+    def next(self, clockwise=True):
+        direction = 1 if clockwise else -1
+        if self.value[0] == 0:
+            x = self.value[1] * (-direction)
+            y = 0
+        else:
+            x = 0
+            y = self.value[0] * direction
+        return Direction((x, y))
+
+
+class CC(IntEnum):
+    RIGHT = 1
+    LEFT = -1
+
+    def next(self):
+        return CC(self.value * -1)
 
 
 class PietDriver:
@@ -18,14 +43,12 @@ class PietDriver:
                          (4, 2): self.in_int, (5, 0): self.in_char,
                          (5, 1): self.out_int, (5, 2): self.out_char}
         self.picture: Picture = picture
-        # сдвиг по оси х, сдвиг по оси y: (1, 0), (0, 1), (-1, 0), (0, -1)
-        self.dp: Tuple[int, int] = (1, 0)
-        # -1 - лево, 1 - право
-        self.cc: int = -1
+        self.dp: Direction = Direction.RIGHT
+        self.cc: CC = CC.LEFT
         self.stack: List[int] = []
-        self.current_pixel: Pixel = picture[0, 0]
-        self.current_block: List[Pixel] = []
-        
+        self.current_pixel: Pixel = self.picture[0, 0]
+        self.current_block: Set[Tuple[int, int]] = set()
+
     def change_picture(self, picture: Picture):
         self.picture = picture
 
@@ -83,16 +106,15 @@ class PietDriver:
         if len(self.stack) == 0:
             return
         turn_count = self.stack.pop()
-        k = 1 if turn_count > 0 else -1
         for i in range(abs(turn_count)):
-            self.turn_dp(k)
+            self.dp = self.dp.next(turn_count > 0)
 
     def switch(self):
         if len(self.stack) == 0:
             return
         turn_count = self.stack.pop()
         for i in range(abs(turn_count)):
-            self.cc *= -1
+            self.cc = self.cc.next()
 
     def duplicate(self):
         if len(self.stack) == 0:
@@ -144,10 +166,9 @@ class PietDriver:
             return
 
     def set_current_block(self):
-        self.current_block = []
+        self.current_block.clear()
         visited: Set[(int, int)] = set()
-        stack: List[Pixel] = []
-        stack.append(self.current_pixel)
+        stack: List[Pixel] = [self.current_pixel]
         while len(stack) != 0:
             current_pixel = stack.pop()
             visited.add((current_pixel.x, current_pixel.y))
@@ -165,78 +186,70 @@ class PietDriver:
                             or pixel.color != self.current_pixel.color):
                         continue
                     stack.append(pixel)
-        for cords in visited:
-            self.current_block.append(self.picture[cords[0], cords[1]])
+        self.current_block = visited
 
     def find_uttermost_pixel_by_dp(self):
-        if self.dp[0] + self.dp[1] == 1:
-            changing_cord = 'x' if self.dp[0] == 1 else 'y'
-            const_cord = 'y' if self.dp[0] == 1 else 'x'
+        if self.dp.value[0] + self.dp.value[1] == 1:
+            changing_cord = 'x' if self.dp.value[0] == 1 else 'y'
+            const_cord = 'y' if self.dp.value[0] == 1 else 'x'
             edge = -1
-            func = int.__gt__
+            compare_func = int.__lt__
         else:
-            changing_cord = 'x' if self.dp[0] == -1 else 'y'
-            const_cord = 'y' if self.dp[0] == -1 else 'x'
+            changing_cord = 'x' if self.dp.value[0] == -1 else 'y'
+            const_cord = 'y' if self.dp.value[0] == -1 else 'x'
             edge = self.picture.width + self.picture.height
-            func = int.__lt__
-        for pixel in self.current_block:
-            if (func(pixel.__dict__[changing_cord], edge)
-                    and pixel.__dict__[const_cord]
-                    == self.current_pixel.__dict__[const_cord]):
-                edge = pixel.__dict__[changing_cord]
-                self.current_pixel = pixel
+            compare_func = int.__gt__
+        for x, y in self.current_block:
+            pixel = self.picture[x, y]
+            if compare_func(getattr(pixel, changing_cord), edge):
+                continue
+            if (getattr(pixel, const_cord)
+                    != getattr(self.current_pixel, const_cord)):
+                continue
+            edge = getattr(pixel, changing_cord)
+            self.current_pixel = pixel
 
-    def get_corner_pixel_direction(self) -> Tuple[int, int]:
-        if self.dp == (-1, 0):
-            return (0, 1) if self.cc == -1 else (0, -1)
-        if self.dp == (1, 0):
-            return (0, -1) if self.cc == -1 else (0, 1)
-        if self.dp == (0, -1):
-            return (-1, 0) if self.cc == -1 else (1, 0)
-        return (1, 0) if self.cc == -1 else (-1, 0)
+    def get_corner_pixel_direction(self) -> Direction:
+        if self.dp == Direction.LEFT:
+            return Direction.DOWN if self.cc == CC.LEFT else Direction.UP
+        if self.dp == Direction.RIGHT:
+            return Direction.UP if self.cc == CC.LEFT else Direction.DOWN
+        if self.dp == Direction.UP:
+            return Direction.LEFT if self.cc == CC.LEFT else Direction.RIGHT
+        return Direction.RIGHT if self.cc == CC.LEFT else Direction.LEFT
 
     def find_uttermost_pixel_by_cc(self):
-        corner_direction: Tuple[int, int] = self.get_corner_pixel_direction()
+        corner_direction: Direction = self.get_corner_pixel_direction()
         while True:
-            x = self.current_pixel.x + corner_direction[0]
-            y = self.current_pixel.y + corner_direction[1]
+            x = self.current_pixel.x + corner_direction.value[0]
+            y = self.current_pixel.y + corner_direction.value[1]
             if not (self.is_correct_coords(x, y)
                     and self.picture[x, y].color
-                    == self.current_block[0].color):
+                    == self.current_pixel.color):
                 break
             self.current_pixel = self.picture[x, y]
 
     def is_correct_coords(self, x: int, y: int) -> bool:
         return (0 <= x < self.picture.width
                 and 0 <= y < self.picture.height
-                and self.picture[x, y].color.rgb != (0, 0, 0))
-
-    # direction = -1 - против часовой стрелки, direction = 1 - по часовой
-    def turn_dp(self, direction: int):
-        if self.dp[0] == 0:
-            x = self.dp[1] * (-direction)
-            y = 0
-        else:
-            x = 0
-            y = self.dp[0] * direction
-        self.dp = (x, y)
+                and self.picture[x, y].color.hue != Hue.BLACK)
 
     def go_to_next_block(self, next_x: int, next_y: int) -> bool:
         next_pixel = self.picture[next_x, next_y]
         if next_pixel.color.rgb == (255, 255, 255):
             k = 0
             while True:
-                x = next_pixel.x + self.dp[0]
-                y = next_pixel.y + self.dp[1]
+                x = next_pixel.x + self.dp.value[0]
+                y = next_pixel.y + self.dp.value[1]
                 if not self.is_correct_coords(x, y):
                     k += 1
-                    self.turn_dp(1)
+                    self.dp = self.dp.next()
                     if k == 4:
                         return False
                 else:
                     next_pixel = self.picture[x, y]
                     if next_pixel.color.rgb != (255, 255, 255):
-                        self.current_pixel= next_pixel
+                        self.current_pixel = next_pixel
                         return True
         hue_shift = (6 - self.current_pixel.color.hue
                      + next_pixel.color.hue) % 6
@@ -252,13 +265,13 @@ class PietDriver:
             self.set_current_block()
             self.find_uttermost_pixel_by_dp()
             self.find_uttermost_pixel_by_cc()
-            x = self.current_pixel.x + self.dp[0]
-            y = self.current_pixel.y + self.dp[1]
+            x = self.current_pixel.x + self.dp.value[0]
+            y = self.current_pixel.y + self.dp.value[1]
             if not self.is_correct_coords(x, y):
                 if k % 2 == 0:
-                    self.cc *= -1
+                    self.cc = self.cc.next()
                 else:
-                    self.turn_dp(1)
+                    self.dp = self.dp.next()
                 k += 1
             else:
                 k = 0

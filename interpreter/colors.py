@@ -19,12 +19,14 @@ class Lightness(IntEnum):
     DARK = 2
 
 
-class Color():
+class Color:
     def __init__(self, rgb: Tuple[int, int, int]):
         if len(rgb) == 4:
             self.rgb = rgb[:-1]
         else:
             self.rgb = rgb
+        if self.rgb not in colors.keys():
+            self.rgb = (255, 255, 255)
         self.lightness = colors[self.rgb][0]
         self.hue = colors[self.rgb][1]
 
