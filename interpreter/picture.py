@@ -1,7 +1,15 @@
 from PIL import Image
-from interpreter.pixel import Pixel
-from interpreter.colors import Color
 from typing import List, Tuple
+from dataclasses import dataclass
+
+from interpreter.colors import Color
+
+
+@dataclass(frozen=True, repr=True)
+class Pixel:
+    x: int
+    y: int
+    color: Color
 
 
 class Picture:
@@ -20,14 +28,8 @@ class Picture:
 
     @classmethod
     def open_picture(cls, file_name: str):
-        rows = []
-        row = []
         with Image.open(file_name) as pic:
-            for i in range(pic.size[0]):
-                for j in range(pic.size[1]):
-                    rgb = pic.getpixel((i, j))
-                    row.append(Pixel(i, j, Color(rgb)))
-                    if j == pic.size[1] - 1:
-                        rows.append(row)
-                        row = []
+            rows = [[Pixel(i, j, Color(pic.getpixel((i, j))))
+                     for j in range(pic.size[1])]
+                    for i in range(pic.size[0])]
         return cls(rows)
