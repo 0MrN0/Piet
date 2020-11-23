@@ -3,31 +3,8 @@ from enum import Enum, IntEnum
 
 from interpreter.colors import Hue
 from interpreter.picture import Picture, Pixel
-
-
-class Direction(Enum):
-    RIGHT = (1, 0)
-    DOWN = (0, 1)
-    LEFT = (-1, 0)
-    UP = (0, -1)
-
-    def next(self, clockwise=True):
-        direction = 1 if clockwise else -1
-        if self.value[0] == 0:
-            x = self.value[1] * (-direction)
-            y = 0
-        else:
-            x = 0
-            y = self.value[0] * direction
-        return Direction((x, y))
-
-
-class CC(IntEnum):
-    RIGHT = 1
-    LEFT = -1
-
-    def next(self):
-        return CC(self.value * -1)
+from interpreter.directions import Direction, CC
+from interpreter.commands import *
 
 
 class PietDriver:
@@ -46,6 +23,7 @@ class PietDriver:
         self.dp: Direction = Direction.RIGHT
         self.cc: CC = CC.LEFT
         self.stack: List[int] = []
+        self.current_command = BaseCommand(self.stack)
         self.current_pixel: Pixel = self.picture[0, 0]
         self.current_block: Set[Tuple[int, int]] = set()
 
@@ -53,117 +31,81 @@ class PietDriver:
         self.picture = picture
 
     def no_action(self):
-        return
+        self.current_command = BaseCommand(self.stack)
+        self.current_command()
 
     def push(self):
-        self.stack.append(len(self.current_block))
+        self.current_command = Push(self.stack, len(self.current_block))
+        self.current_command()
 
     def pop(self):
-        if len(self.stack) == 0:
-            return
-        self.stack.pop()
+        self.current_command = Pop(self.stack)
+        self.current_command()
 
     def add(self):
-        self._calculate(int.__add__, -1)
+        self.current_command = Calculate(self.stack, 'add', int.__add__, -1)
+        self.current_command()
 
     def subtract(self):
-        self._calculate(int.__sub__, -1)
+        self.current_command = Calculate(self.stack,
+                                         'subtract', int.__sub__, -1)
+        self.current_command()
 
     def multiply(self):
-        self._calculate(int.__mul__, -1)
+        self.current_command = Calculate(self.stack,
+                                         'multiply', int.__mul__, -1)
+        self.current_command()
 
     def divide(self):
-        self._calculate(int.__divmod__, 0)
+        self.current_command = Calculate(self.stack,
+                                         'divide', int.__divmod__, 0)
+        self.current_command()
 
     def mod(self):
-        self._calculate(int.__divmod__, 1)
-
-    def _calculate(self, operation: callable, index: int):
-        if len(self.stack) < 2:
-            return
-        a = self.stack.pop()
-        b = self.stack.pop()
-        if index != -1:
-            a = abs(a) if index == 1 else a
-            self.stack.append(operation(b, a)[index])
-            return
-        self.stack.append(operation(b, a))
+        self.current_command = Calculate(self.stack, 'mod', int.__divmod__, 1)
+        self.current_command()
 
     def not_operation(self):
-        if len(self.stack) == 0:
-            return
-        old_value = self.stack.pop()
-        self.stack.append(1 if old_value == 0 else 0)
+        self.current_command = Not(self.stack)
+        self.current_command()
 
     def greater(self):
-        if len(self.stack) < 2:
-            return
-        a = self.stack.pop()
-        b = self.stack.pop()
-        self.stack.append(1 if b > a else 0)
+        self.current_command = Greater(self.stack)
+        self.current_command()
 
     def pointer(self):
-        if len(self.stack) == 0:
-            return
-        turn_count = self.stack.pop()
-        for i in range(abs(turn_count)):
-            self.dp = self.dp.next(turn_count > 0)
+        self.current_command = Pointer(self.stack, self.dp)
+        self.current_command()
+        self.dp = self.current_command.dp
 
     def switch(self):
-        if len(self.stack) == 0:
-            return
-        turn_count = self.stack.pop()
-        for i in range(abs(turn_count)):
-            self.cc = self.cc.next()
+        self.current_command = Switch(self.stack, self.cc)
+        self.current_command()
+        self.cc = self.current_command.cc
 
     def duplicate(self):
-        if len(self.stack) == 0:
-            return
-        self.stack.append(self.stack[len(self.stack) - 1])
+        self.current_command = Duplicate(self.stack)
+        self.current_command()
 
-    # берем depth последних элементов листа и прокручиваем их
-    # с шагом count, -count - влево, +count - вправо
     def roll(self):
-        if len(self.stack) < 2 or self.stack[-2] < 0:
-            return
-        count = self.stack.pop()
-        depth = self.stack.pop()
-        if depth == 1:
-            return
-        count %= depth
-        _ = -abs(count) + depth * (count < 0)
-        self.stack[-depth:] = self.stack[_:] + self.stack[-depth:_]
+        self.current_command = Roll(self.stack)
+        self.current_command()
 
     def in_int(self):
-        input_value = input()
-        try:
-            self.stack.append(int(input_value))
-        except ValueError:
-            return
+        self.current_command = InInt(self.stack)
+        self.current_command()
 
     def in_char(self):
-        input_value = input()
-        try:
-            if len(input_value) > 1:
-                return
-            self.stack.append(ord(input_value))
-        except TypeError:
-            return
-        except ValueError:
-            return
+        self.current_command = InChar(self.stack)
+        self.current_command()
 
     def out_int(self):
-        if len(self.stack) == 0:
-            return
-        print(self.stack.pop(), end='')
+        self.current_command = OutInt(self.stack)
+        self.current_command()
 
     def out_char(self):
-        if len(self.stack) == 0:
-            return
-        try:
-            print(chr(self.stack.pop()), end='')
-        except ValueError:
-            return
+        self.current_command = OutChar(self.stack)
+        self.current_command()
 
     def set_current_block(self):
         self.current_block.clear()
