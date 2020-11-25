@@ -5,7 +5,7 @@ class BaseCommand:
     def __init__(self, stack: []):
         self.stack = stack
         self.name = 'no_action'
-        self.description = 'this command does nothing'
+        self.description = 'эта команда ничего не делает'
         self.arguments = None
 
     def __call__(self):
@@ -15,16 +15,16 @@ class BaseCommand:
         return
 
     def __repr__(self):
-        return (f'name: {self.name}, description: '
-                f'{self.description}, args: {self.arguments}')
+        return (f'\tназвание: {self.name},\n\tописание: '
+                f'{self.description},\n\tаргументы: {self.arguments}')
 
 
 class Push(BaseCommand):
     def __init__(self, stack: [], value: int):
         super().__init__(stack)
         self.name = 'push'
-        self.description = 'pushes the number of previous color block\'s' \
-                           ' pixels on the stack'
+        self.description = 'кладет в стэк число, ' \
+                           'равное количеству пикселей в предыдущем блоке'
         self.arguments = value
 
     def execute(self):
@@ -35,7 +35,7 @@ class Pop(BaseCommand):
     def __init__(self, stack: []):
         super().__init__(stack)
         self.name = 'pop'
-        self.description = 'pops the top value of stack'
+        self.description = 'убирает верхнее значение стэка'
 
     def execute(self):
         if len(self.stack) == 0:
@@ -53,20 +53,18 @@ class Calculate(BaseCommand):
         self.description = self.set_description()
 
     def set_description(self):
-        start = 'pops two stack\'s values, '
-        end = ', pushes the result on the stack'
+        start = 'убирает два значения стэка, '
+        end = ', кладет результат обратно в стэк'
         if self.calculate_func == int.__sub__:
-            return f'{start}subtracts the top value from ' \
-                   f'the previous one{end}'
+            return f'{start}вычитает верхнее значение из предыдущего{end}'
         if self.calculate_func == int.__add__:
-            return f'{start}adds them{end}'
+            return f'{start}складывает их{end}'
         if self.calculate_func == int.__mul__:
-            return f'{start}multiplies them{end}'
+            return f'{start}умножает их{end}'
         if self.index == 0:
-            return f'{start}calculates the integer part of dividing ' \
-                   f'the top by the previous{end}'
-        return f'{start}calculates the remainder of dividing the top ' \
-               f'by the previous{end}'
+            return f'{start}делит нацело предыдущее значение на верхнее{end}'
+        return f'{start}вчисляет остаток от деления предыдущего ' \
+               f'значения на верхнее{end}'
 
     def execute(self):
         if len(self.stack) < 2:
@@ -85,8 +83,8 @@ class Not(BaseCommand):
     def __init__(self, stack: []):
         super().__init__(stack)
         self.name = 'not'
-        self.description = 'replaces the top value of the stack with 0 if ' \
-                           'the top value is 1, else with 1'
+        self.description = 'заменяет верхнее значение стэка на 0,' \
+                           ' если оно было равно 1, иначе на 1'
 
     def execute(self):
         if len(self.stack) == 0:
@@ -100,8 +98,9 @@ class Greater(BaseCommand):
     def __init__(self, stack: []):
         super().__init__(stack)
         self.name = 'greater'
-        self.description = 'pops two values of the stack, pushes 1 if ' \
-                           'previous is greater then top, else 0'
+        self.description = 'убирает два значения из стэка, кладет в ' \
+                           'него 1, если предыдущее значение было ' \
+                           'больше верхнего, иначе кладет 0'
 
     def execute(self):
         if len(self.stack) < 2:
@@ -116,9 +115,9 @@ class Pointer(BaseCommand):
     def __init__(self, stack: [], dp: Direction):
         super().__init__(stack)
         self.name = 'pointer'
-        self.description = 'pops the value from stack, rotate dp ' \
-                           'clockwise absolute of this value if ' \
-                           'value > 0, else rotate counterclockwise)'
+        self.description = 'убирает значение(далее х) из стэка, ' \
+                           'меняет dp по часовой стрелке abs(x) раз, если' \
+                           'х > 0, иначе - против часовой'
         self.dp = dp
 
     def execute(self):
@@ -133,7 +132,8 @@ class Switch(BaseCommand):
     def __init__(self, stack: [], cc: CC):
         super().__init__(stack)
         self.name = 'switch'
-        self.description = 'pops the value from stack, rotate cc absolute of value times'
+        self.description = 'убирает значение(далее х) из стэка, ' \
+                           'меняет cc abs(x) раз'
         self.cc = cc
 
     def execute(self):
@@ -148,7 +148,7 @@ class Duplicate(BaseCommand):
     def __init__(self, stack: []):
         super().__init__(stack)
         self.name = 'duplicate'
-        self.description = ''
+        self.description = 'дублирует в стэк его верхнее значение'
 
     def execute(self):
         if len(self.stack) == 0:
@@ -161,10 +161,13 @@ class Roll(BaseCommand):
     def __init__(self, stack: []):
         super().__init__(stack)
         self.name = 'roll'
-        self.description = ''
+        self.description = 'убирает два значения из стэка, ' \
+                           '\n\t\t верхнее - count, предыдущее - depth, ' \
+                           '\n\t\t depth не может быть отрицательным, ' \
+                           '\n\t\t берет depth последних элементов стэка и ' \
+                           '\n\t\t циклически сдвигает их с шагом count ' \
+                           '\n\t\t (count > 0 - вправо, count < 0 - влево)'
 
-    # берем depth последних элементов листа и прокручиваем их
-    # с шагом count, -count - влево, +count - вправо
     def execute(self):
         if len(self.stack) < 2 or self.stack[-2] < 0:
             return
@@ -182,7 +185,7 @@ class InInt(BaseCommand):
     def __init__(self, stack: []):
         super().__init__(stack)
         self.name = 'in_int'
-        self.description = ''
+        self.description = 'кладет введенное с консоли целое число в стэк'
 
     def execute(self):
         input_value = input()
@@ -197,7 +200,7 @@ class InChar(BaseCommand):
     def __init__(self, stack):
         super().__init__(stack)
         self.name = 'in_char'
-        self.description = ''
+        self.description = 'кладет ord(введенный в консоль символ) в стэк'
 
     def execute(self):
         input_value = input()
@@ -213,31 +216,40 @@ class InChar(BaseCommand):
 
 
 class OutInt(BaseCommand):
-    def __init__(self, stack: []):
+    def __init__(self, stack: [], step_by_step=False):
         super().__init__(stack)
+        self.step_by_step = step_by_step
         self.name = 'out_int'
-        self.description = ''
+        self.description = 'убирает значение из стэка и выводит его в консоль'
 
     def execute(self):
         if len(self.stack) == 0:
             return
         out_value = self.stack.pop()
         self.arguments = out_value
-        print(out_value, end='')
+        if self.step_by_step:
+            print(f'\nВЫВОД:{out_value}\n')
+        else:
+            print(out_value, end='')
 
 
 class OutChar(BaseCommand):
-    def __init__(self, stack: []):
+    def __init__(self, stack: [], step_by_step=False):
+        self.step_by_step = step_by_step
         super().__init__(stack)
         self.name = 'out_char'
-        self.description = ''
+        self.description = 'убирает значение из стэка ' \
+                           'и выводит chr(значение) в консоль'
 
     def execute(self):
         if len(self.stack) == 0:
             return
         try:
             out_value = self.stack.pop()
-            print(chr(out_value), end='')
+            if self.step_by_step:
+                print(f'\nВЫВОД:{chr(out_value)}\n')
+            else:
+                print(chr(out_value), end='')
             self.arguments = out_value
         except ValueError:
             return

@@ -1,14 +1,16 @@
 from typing import Set, List, Tuple
-from enum import Enum, IntEnum
 
 from interpreter.colors import Hue
 from interpreter.picture import Picture, Pixel
 from interpreter.directions import Direction, CC
-from interpreter.commands import *
+from interpreter.commands import (BaseCommand, Push, Pop, Calculate,
+                                  Duplicate, InChar, InInt, OutInt,
+                                  OutChar, Pointer, Switch, Roll, Not,
+                                  Greater)
 
 
 class PietDriver:
-    def __init__(self, picture: Picture):
+    def __init__(self, picture: Picture, step_by_step: bool):
         # (сдвиг оттенка, сдвиг яркости) : команда
         self.commands = {(0, 0): self.no_action, (0, 1): self.push,
                          (0, 2): self.pop, (1, 0): self.add,
@@ -20,6 +22,7 @@ class PietDriver:
                          (4, 2): self.in_int, (5, 0): self.in_char,
                          (5, 1): self.out_int, (5, 2): self.out_char}
         self.picture: Picture = picture
+        self.step_by_step = step_by_step
         self.dp: Direction = Direction.RIGHT
         self.cc: CC = CC.LEFT
         self.stack: List[int] = []
@@ -100,11 +103,11 @@ class PietDriver:
         self.current_command()
 
     def out_int(self):
-        self.current_command = OutInt(self.stack)
+        self.current_command = OutInt(self.stack, self.step_by_step)
         self.current_command()
 
     def out_char(self):
-        self.current_command = OutChar(self.stack)
+        self.current_command = OutChar(self.stack, self.step_by_step)
         self.current_command()
 
     def set_current_block(self):
@@ -218,5 +221,11 @@ class PietDriver:
             else:
                 k = 0
                 do_next_iteration = self.go_to_next_block(x, y)
+                if do_next_iteration and self.step_by_step:
+                    print(f'current command:\n{self.current_command}\n'
+                          f'stack: {self.stack}\n'
+                          f'current pixel: {self.current_pixel}\n'
+                          'press any key to continue\n')
+                    input()
                 if not do_next_iteration:
                     break

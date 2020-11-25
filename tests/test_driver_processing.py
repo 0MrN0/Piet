@@ -7,7 +7,7 @@ import unittest.mock
 
 @pytest.fixture
 def driver():
-    return PietDriver(Picture.open_picture('tests/test_pictures/palette.png'))
+    return PietDriver(Picture.open_picture('tests/test_pictures/palette.png'), False)
 
 
 @pytest.mark.parametrize(
@@ -66,8 +66,8 @@ def test_get_corner_direction(driver, dp, cc, expected_direction):
     assert expected_direction == actual_direction
 
 
-def test_process_picture():
-    driver = PietDriver(
+def test_process_picture(driver):
+    driver.change_picture(
         Picture.open_picture('tests/test_pictures/comparsion_int.png'))
     with unittest.mock.patch('builtins.input', return_value=5):
         driver.process_picture()

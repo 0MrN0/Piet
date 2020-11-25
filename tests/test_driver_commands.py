@@ -7,7 +7,7 @@ import unittest.mock
 
 @pytest.fixture
 def driver():
-    return PietDriver(Picture.open_picture('tests/test_pictures/palette.png'))
+    return PietDriver(Picture.open_picture('tests/test_pictures/palette.png'), False)
 
 
 def test_push(driver):
