@@ -16,6 +16,7 @@ python __main__.py *picture_name* 0
 ### Пошаговый режим исполнения
 ```bash
 python __main__.py *picture_name* 1
+python -m interpreter picture_name
 ```
 
 где picture_name - путь до программы.
