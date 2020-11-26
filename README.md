@@ -9,14 +9,22 @@ pip install -r requirements.txt
 ```
 
 ## Запуск
+### Обычный режим исполнения
 ```bash
-python __main__.py *picture_name*
+python __main__.py *picture_name* 0
+```
+### Пошаговый режим исполнения
+```bash
+python __main__.py *picture_name* 1
 ```
 
 где picture_name - путь до программы.
 
 ## Тестовые программы
 800-400.png выводит в консоль результат выражения 800 - 400
+
+800-400_with_incorrect_color.png - аналог предыдущей программы,
+но вместо белого цвета использует некоторый неизвестный языку цвет.
 
 print_(.png выводит в консоль символ (
 

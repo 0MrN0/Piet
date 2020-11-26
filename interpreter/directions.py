@@ -23,4 +23,4 @@ class CC(IntEnum):
     LEFT = -1
 
     def next(self):
-        return
+        return CC(self.value * -1)

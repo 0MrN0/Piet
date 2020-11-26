@@ -10,7 +10,7 @@ if __name__ == '__main__':
                         help='name of picture format, which is in programs',
                         type=str)
     parser.add_argument('step_by_step',
-                        help='True, False',
+                        help='1 - step_by_step, 0 - standard',
                         type=int)
     args = parser.parse_args()
     script_path = Path(args.script)

@@ -222,10 +222,10 @@ class PietDriver:
                 k = 0
                 do_next_iteration = self.go_to_next_block(x, y)
                 if do_next_iteration and self.step_by_step:
-                    print(f'current command:\n{self.current_command}\n'
-                          f'stack: {self.stack}\n'
-                          f'current pixel: {self.current_pixel}\n'
-                          'press any key to continue\n')
+                    print(f'текущая команда:\n{self.current_command}\n'
+                          f'стэк: {self.stack}\n'
+                          f'текущий пиксель: {self.current_pixel}\n'
+                          'для продолжения нажмите enter\n')
                     input()
                 if not do_next_iteration:
                     break
