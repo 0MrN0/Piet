@@ -7,7 +7,8 @@ import unittest.mock
 
 @pytest.fixture
 def driver():
-    return PietDriver(Picture.open_picture('tests/test_pictures/palette.png'), False)
+    return PietDriver(Picture.open_picture(
+        'tests/test_pictures/palette.png'), False)
 
 
 @pytest.mark.parametrize(
