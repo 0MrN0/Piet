@@ -95,11 +95,11 @@ class PietDriver:
         self.current_command()
 
     def in_int(self):
-        self.current_command = InInt(self.stack)
+        self.current_command = InInt(self.stack, self.step_by_step)
         self.current_command()
 
     def in_char(self):
-        self.current_command = InChar(self.stack)
+        self.current_command = InChar(self.stack, self.step_by_step)
         self.current_command()
 
     def out_int(self):

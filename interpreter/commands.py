@@ -182,13 +182,17 @@ class Roll(BaseCommand):
 
 
 class InInt(BaseCommand):
-    def __init__(self, stack: []):
+    def __init__(self, stack: [], step_by_step: bool):
         super().__init__(stack)
+        self.step_by_step = step_by_step
         self.name = 'in_int'
         self.description = 'кладет введенное с консоли целое число в стэк'
 
     def execute(self):
-        input_value = input()
+        if self.step_by_step:
+            input_value = input('ВВОД:')
+        else:
+            input_value = input()
         try:
             self.stack.append(int(input_value))
             self.arguments = input_value
@@ -197,13 +201,17 @@ class InInt(BaseCommand):
 
 
 class InChar(BaseCommand):
-    def __init__(self, stack):
+    def __init__(self, stack: [], step_by_step: bool):
         super().__init__(stack)
+        self.step_by_step = step_by_step
         self.name = 'in_char'
         self.description = 'кладет ord(введенный в консоль символ) в стэк'
 
     def execute(self):
-        input_value = input()
+        if self.step_by_step:
+            input_value = input('ВВОД:')
+        else:
+            input_value = input()
         try:
             if len(input_value) > 1:
                 return
