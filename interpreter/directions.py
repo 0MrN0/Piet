@@ -18,9 +18,9 @@ class Direction(Enum):
         return Direction((x, y))
 
 
-class CC(IntEnum):
+class CodelChooser(IntEnum):
     RIGHT = 1
     LEFT = -1
 
     def next(self):
-        return CC(self.value * -1)
+        return CodelChooser(self.value * -1)

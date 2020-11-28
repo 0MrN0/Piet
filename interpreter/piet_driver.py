@@ -2,113 +2,60 @@ from typing import Set, List, Tuple
 
 from interpreter.colors import Hue
 from interpreter.picture import Picture, Pixel
-from interpreter.directions import Direction, CC
-from interpreter.commands import (BaseCommand, Push, Pop, Calculate,
-                                  Duplicate, InChar, InInt, OutInt,
-                                  OutChar, Pointer, Switch, Roll, Not,
-                                  Greater)
+from interpreter.directions import Direction, CodelChooser
+from interpreter.commands import (BaseCommand, Push, Pop, Duplicate,
+                                  InChar, InInt, OutInt, Pointer,
+                                  OutChar, Switch, Roll, Not,
+                                  Greater, Add, Subtract, Multiply,
+                                  Mod, Divide)
+
+
+class StepByStepExecutor:
+    def __init__(self, driver: 'PietDriver'):
+        self.driver = driver
+
+    def continue_execution(self):
+        self.driver.error_stream.write('Для продолжения нажмите enter\n')
+        while True:
+            char = self.driver.in_stream.read(1)
+            if char == '\n':
+                break
+
+    def show_current_step(self):
+        self.driver.error_stream.write(f'текущая команда'
+                                       f':\n{self.driver.current_command}\n'
+                                       f'стэк: {self.driver.stack}\n'
+                                       f'текущий пиксель'
+                                       f': {self.driver.current_pixel}\n')
 
 
 class PietDriver:
-    def __init__(self, picture: Picture, step_by_step: bool):
+    def __init__(self, picture: Picture, step_by_step: bool,
+                 in_stream, out_stream, error_stream):
         # (сдвиг оттенка, сдвиг яркости) : команда
-        self.commands = {(0, 0): self.no_action, (0, 1): self.push,
-                         (0, 2): self.pop, (1, 0): self.add,
-                         (1, 1): self.subtract, (1, 2): self.multiply,
-                         (2, 0): self.divide, (2, 1): self.mod,
-                         (2, 2): self.not_operation, (3, 0): self.greater,
-                         (3, 1): self.pointer, (3, 2): self.switch,
-                         (4, 0): self.duplicate, (4, 1): self.roll,
-                         (4, 2): self.in_int, (5, 0): self.in_char,
-                         (5, 1): self.out_int, (5, 2): self.out_char}
+        self.commands = {(0, 0): BaseCommand, (0, 1): Push,
+                         (0, 2): Pop, (1, 0): Add,
+                         (1, 1): Subtract, (1, 2): Multiply,
+                         (2, 0): Divide, (2, 1): Mod,
+                         (2, 2): Not, (3, 0): Greater,
+                         (3, 1): Pointer, (3, 2): Switch,
+                         (4, 0): Duplicate, (4, 1): Roll,
+                         (4, 2): InInt, (5, 0): InChar,
+                         (5, 1): OutInt, (5, 2): OutChar}
         self.picture: Picture = picture
-        self.step_by_step = step_by_step
+        self.step_by_step = StepByStepExecutor(self) if step_by_step else None
+        self.error_stream = error_stream
+        self.in_stream = in_stream
+        self.out_stream = out_stream
         self.dp: Direction = Direction.RIGHT
-        self.cc: CC = CC.LEFT
+        self.cc: CodelChooser = CodelChooser.LEFT
         self.stack: List[int] = []
-        self.current_command = BaseCommand(self.stack)
+        self.current_command = BaseCommand()
         self.current_pixel: Pixel = self.picture[0, 0]
         self.current_block: Set[Tuple[int, int]] = set()
 
     def change_picture(self, picture: Picture):
         self.picture = picture
-
-    def no_action(self):
-        self.current_command = BaseCommand(self.stack)
-        self.current_command()
-
-    def push(self):
-        self.current_command = Push(self.stack, len(self.current_block))
-        self.current_command()
-
-    def pop(self):
-        self.current_command = Pop(self.stack)
-        self.current_command()
-
-    def add(self):
-        self.current_command = Calculate(self.stack, 'add', int.__add__, -1)
-        self.current_command()
-
-    def subtract(self):
-        self.current_command = Calculate(self.stack,
-                                         'subtract', int.__sub__, -1)
-        self.current_command()
-
-    def multiply(self):
-        self.current_command = Calculate(self.stack,
-                                         'multiply', int.__mul__, -1)
-        self.current_command()
-
-    def divide(self):
-        self.current_command = Calculate(self.stack,
-                                         'divide', int.__divmod__, 0)
-        self.current_command()
-
-    def mod(self):
-        self.current_command = Calculate(self.stack, 'mod', int.__divmod__, 1)
-        self.current_command()
-
-    def not_operation(self):
-        self.current_command = Not(self.stack)
-        self.current_command()
-
-    def greater(self):
-        self.current_command = Greater(self.stack)
-        self.current_command()
-
-    def pointer(self):
-        self.current_command = Pointer(self.stack, self.dp)
-        self.current_command()
-        self.dp = self.current_command.dp
-
-    def switch(self):
-        self.current_command = Switch(self.stack, self.cc)
-        self.current_command()
-        self.cc = self.current_command.cc
-
-    def duplicate(self):
-        self.current_command = Duplicate(self.stack)
-        self.current_command()
-
-    def roll(self):
-        self.current_command = Roll(self.stack)
-        self.current_command()
-
-    def in_int(self):
-        self.current_command = InInt(self.stack, self.step_by_step)
-        self.current_command()
-
-    def in_char(self):
-        self.current_command = InChar(self.stack, self.step_by_step)
-        self.current_command()
-
-    def out_int(self):
-        self.current_command = OutInt(self.stack, self.step_by_step)
-        self.current_command()
-
-    def out_char(self):
-        self.current_command = OutChar(self.stack, self.step_by_step)
-        self.current_command()
 
     def set_current_block(self):
         self.current_block.clear()
@@ -156,12 +103,16 @@ class PietDriver:
 
     def get_corner_pixel_direction(self) -> Direction:
         if self.dp == Direction.LEFT:
-            return Direction.DOWN if self.cc == CC.LEFT else Direction.UP
+            return Direction.DOWN \
+                if self.cc == CodelChooser.LEFT else Direction.UP
         if self.dp == Direction.RIGHT:
-            return Direction.UP if self.cc == CC.LEFT else Direction.DOWN
+            return Direction.UP \
+                if self.cc == CodelChooser.LEFT else Direction.DOWN
         if self.dp == Direction.UP:
-            return Direction.LEFT if self.cc == CC.LEFT else Direction.RIGHT
-        return Direction.RIGHT if self.cc == CC.LEFT else Direction.LEFT
+            return Direction.LEFT \
+                if self.cc == CodelChooser.LEFT else Direction.RIGHT
+        return Direction.RIGHT \
+            if self.cc == CodelChooser.LEFT else Direction.LEFT
 
     def find_uttermost_pixel_by_cc(self):
         corner_direction: Direction = self.get_corner_pixel_direction()
@@ -178,6 +129,18 @@ class PietDriver:
         return (0 <= x < self.picture.width
                 and 0 <= y < self.picture.height
                 and self.picture[x, y].color.hue != Hue.BLACK)
+
+    def set_current_command(self, hue_shift: int, lightness_shift: int):
+        if (self.current_command is InInt
+                or self.current_command is InChar):
+            self.current_command = self.commands[hue_shift, lightness_shift](
+                self.in_stream, self.error_stream)
+        elif (self.current_command is OutInt
+              or self.current_command is OutChar):
+            self.current_command = self.commands[hue_shift, lightness_shift](
+                self.out_stream, self.error_stream)
+        else:
+            self.current_command = self.commands[hue_shift, lightness_shift]()
 
     def go_to_next_block(self, next_x: int, next_y: int) -> bool:
         next_pixel = self.picture[next_x, next_y]
@@ -200,7 +163,19 @@ class PietDriver:
                      + next_pixel.color.hue) % 6
         lightness_shift = (3 - self.current_pixel.color.lightness
                            + next_pixel.color.lightness) % 3
-        self.commands[hue_shift, lightness_shift]()
+        self.current_command = self.commands[hue_shift, lightness_shift]
+        self.set_current_command(hue_shift, lightness_shift)
+        if isinstance(self.current_command, Switch):
+            self.cc = self.current_command(self.stack,
+                                           len(self.current_block),
+                                           self.dp, self.cc)
+        elif isinstance(self.current_command, Pointer):
+            self.dp = self.current_command(self.stack,
+                                           len(self.current_block),
+                                           self.dp, self.cc)
+        else:
+            self.current_command(self.stack, len(self.current_block),
+                                 self.dp, self.cc)
         self.current_pixel = next_pixel
         return True
 
@@ -222,10 +197,7 @@ class PietDriver:
                 k = 0
                 do_next_iteration = self.go_to_next_block(x, y)
                 if do_next_iteration and self.step_by_step:
-                    print(f'текущая команда:\n{self.current_command}\n'
-                          f'стэк: {self.stack}\n'
-                          f'текущий пиксель: {self.current_pixel}\n'
-                          'для продолжения нажмите enter\n')
-                    input()
+                    self.step_by_step.show_current_step()
+                    self.step_by_step.continue_execution()
                 if not do_next_iteration:
                     break
