@@ -1,18 +1,16 @@
-from interpreter.directions import Direction, CC
+from typing import List
+
+from interpreter.directions import Direction, CodelChooser
 
 
 class BaseCommand:
-    def __init__(self, stack: []):
-        self.stack = stack
-        self.name = 'no_action'
-        self.description = 'эта команда ничего не делает'
-        self.arguments = None
+    name = 'no_action'
+    description = 'эта команда ничего не делает'
+    arguments = None
 
-    def __call__(self):
-        self.execute()
-
-    def execute(self):
-        return
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: 'Direction', cc: 'CodelChooser'):
+        pass
 
     def __repr__(self):
         return (f'\tназвание: {self.name},\n\tописание: '
@@ -20,244 +18,303 @@ class BaseCommand:
 
 
 class Push(BaseCommand):
-    def __init__(self, stack: [], value: int):
-        super().__init__(stack)
-        self.name = 'push'
-        self.description = 'кладет в стэк число, ' \
-                           'равное количеству пикселей в предыдущем блоке'
-        self.arguments = value
+    name = 'push'
+    description = 'кладет в стэк число, равное количеству ' \
+                  'пикселей в предыдущем блоке'
 
-    def execute(self):
-        self.stack.append(self.arguments)
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        self.arguments = len_current_block
+        stack.append(self.arguments)
 
 
 class Pop(BaseCommand):
-    def __init__(self, stack: []):
-        super().__init__(stack)
-        self.name = 'pop'
-        self.description = 'убирает верхнее значение стэка'
+    name = 'pop'
+    description = 'убирает верхнее значение стэка'
 
-    def execute(self):
-        if len(self.stack) == 0:
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) == 0:
             return
-        self.arguments = self.stack.pop()
+        self.arguments = stack.pop()
 
 
-class Calculate(BaseCommand):
-    def __init__(self, stack: [], name: str,
-                 calculate_func: callable, index: int):
-        super().__init__(stack)
-        self.name = name
-        self.calculate_func = calculate_func
-        self.index = index
-        self.description = self.set_description()
+class Add(BaseCommand):
+    name = 'add'
+    description = 'убирает два значения из стэка, складывает их, ' \
+                  'кладет результат обратно в стэк'
 
-    def set_description(self):
-        start = 'убирает два значения стэка, '
-        end = ', кладет результат обратно в стэк'
-        if self.calculate_func == int.__sub__:
-            return f'{start}вычитает верхнее значение из предыдущего{end}'
-        if self.calculate_func == int.__add__:
-            return f'{start}складывает их{end}'
-        if self.calculate_func == int.__mul__:
-            return f'{start}умножает их{end}'
-        if self.index == 0:
-            return f'{start}делит нацело предыдущее значение на верхнее{end}'
-        return f'{start}вчисляет остаток от деления предыдущего ' \
-               f'значения на верхнее{end}'
-
-    def execute(self):
-        if len(self.stack) < 2:
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) < 2:
             return
-        a = self.stack.pop()
-        b = self.stack.pop()
-        self.arguments = (b, a)
-        if self.index != -1:
-            a = abs(a) if self.index == 1 else a
-            self.stack.append(self.calculate_func(b, a)[self.index])
+        a = stack.pop()
+        b = stack.pop()
+        self.arguments = (a, b)
+        stack.append(a + b)
+
+
+class Subtract(BaseCommand):
+    name = 'subtract'
+    description = 'убирает два значения из стэка, вычитает верхнее из ' \
+                  'предыдущего, кладет результат обратно в стэк'
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) < 2:
             return
-        self.stack.append(self.calculate_func(b, a))
+        a = stack.pop()
+        b = stack.pop()
+        self.arguments = (a, b)
+        stack.append(b - a)
+
+
+class Multiply(BaseCommand):
+    name = 'multiply'
+    description = 'Убирает два значения из стэка, умножает их, кладет ' \
+                  'результат обратно в стэк'
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) < 2:
+            return
+        a = stack.pop()
+        b = stack.pop()
+        self.arguments = (a, b)
+        stack.append(a * b)
+
+
+class Divide(BaseCommand):
+    name = 'divide'
+    description = 'убирает два значения из стэка, делит нацело предыдущее ' \
+                  'на верхнее, кладет результат обратно в стэк'
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) < 2:
+            return
+        a = stack.pop()
+        b = stack.pop()
+        self.arguments = (a, b)
+        stack.append(b // a)
+
+
+class Mod(BaseCommand):
+    name = 'mod'
+    description = 'убирает два значения из стэка, кладет остаток от ' \
+                  'деления предыдущего на верхнее обратно в стэк'
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) < 2:
+            return
+        a = stack.pop()
+        b = stack.pop()
+        self.arguments = (a, b)
+        stack.append(b % abs(a))
 
 
 class Not(BaseCommand):
-    def __init__(self, stack: []):
-        super().__init__(stack)
-        self.name = 'not'
-        self.description = 'заменяет верхнее значение стэка на 0,' \
-                           ' если оно было равно 1, иначе на 1'
+    name = 'not'
+    description = 'заменяет верхнее значение стэка на 0, если оно было ' \
+                  'равно 1, иначе на 1'
 
-    def execute(self):
-        if len(self.stack) == 0:
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) == 0:
             return
-        old_value = self.stack.pop()
+        old_value = stack.pop()
         self.arguments = old_value
-        self.stack.append(1 if old_value == 0 else 0)
+        stack.append(1 if old_value == 0 else 0)
 
 
 class Greater(BaseCommand):
-    def __init__(self, stack: []):
-        super().__init__(stack)
-        self.name = 'greater'
-        self.description = 'убирает два значения из стэка, кладет в ' \
-                           'него 1, если предыдущее значение было ' \
-                           'больше верхнего, иначе кладет 0'
+    name = 'greater'
+    description = 'убирает два значения из стэка, кладет в него 1, если ' \
+                  'предыдущее значение было больше верхнего, иначе кладет 0'
 
-    def execute(self):
-        if len(self.stack) < 2:
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) < 2:
             return
-        a = self.stack.pop()
-        b = self.stack.pop()
+        a = stack.pop()
+        b = stack.pop()
         self.arguments = (b, a)
-        self.stack.append(1 if b > a else 0)
+        stack.append(1 if b > a else 0)
 
 
 class Pointer(BaseCommand):
-    def __init__(self, stack: [], dp: Direction):
-        super().__init__(stack)
-        self.name = 'pointer'
-        self.description = 'убирает значение(далее х) из стэка, ' \
-                           'меняет dp по часовой стрелке abs(x) раз, если' \
-                           'х > 0, иначе - против часовой'
-        self.dp = dp
+    name = 'pointer'
+    description = 'убирает значение(далее х) из стэка, меняет dp по часовой' \
+                  ' стрелке abs(x) раз, если х > 0, иначе - против часовой'
 
-    def execute(self):
-        if len(self.stack) != 0:
-            turn_count = self.stack.pop()
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        new_dp = dp
+        if len(stack) != 0:
+            turn_count = stack.pop()
             self.arguments = turn_count
             for i in range(abs(turn_count)):
-                self.dp = self.dp.next(turn_count > 0)
+                new_dp = new_dp.next(turn_count > 0)
+        return new_dp
 
 
 class Switch(BaseCommand):
-    def __init__(self, stack: [], cc: CC):
-        super().__init__(stack)
-        self.name = 'switch'
-        self.description = 'убирает значение(далее х) из стэка, ' \
-                           'меняет cc abs(x) раз'
-        self.cc = cc
+    name = 'switch'
+    description = 'убирает значение(далее х) из стэка, меняет cc abs(x) раз'
 
-    def execute(self):
-        if len(self.stack) != 0:
-            turn_count = self.stack.pop()
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        new_cc = cc
+        if len(stack) != 0:
+            turn_count = stack.pop()
             self.arguments = turn_count
             for i in range(abs(turn_count)):
-                self.cc = self.cc.next()
+                new_cc = new_cc.next()
+        return new_cc
 
 
 class Duplicate(BaseCommand):
-    def __init__(self, stack: []):
-        super().__init__(stack)
-        self.name = 'duplicate'
-        self.description = 'дублирует в стэк его верхнее значение'
+    name = 'duplicate'
+    description = 'дублирует в стэк его верхнее значение'
 
-    def execute(self):
-        if len(self.stack) == 0:
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) == 0:
             return
-        self.arguments = self.stack[-1]
-        self.stack.append(self.stack[-1])
+        self.arguments = stack[-1]
+        stack.append(stack[-1])
 
 
 class Roll(BaseCommand):
-    def __init__(self, stack: []):
-        super().__init__(stack)
-        self.name = 'roll'
-        self.description = 'убирает два значения из стэка, ' \
-                           '\n\t\t верхнее - count, предыдущее - depth, ' \
-                           '\n\t\t depth не может быть отрицательным, ' \
-                           '\n\t\t берет depth последних элементов стэка и ' \
-                           '\n\t\t циклически сдвигает их с шагом count ' \
-                           '\n\t\t (count > 0 - вправо, count < 0 - влево)'
+    name = 'roll'
+    description = 'убирает два значения из стэка, ' \
+                  '\n\t\t  верхнее - count, предыдущее - depth, ' \
+                  '\n\t\t  depth не может быть отрицательным, ' \
+                  '\n\t\t  берет depth последних элементов стэка и ' \
+                  '\n\t\t  циклически сдвигает их с шагом count ' \
+                  '\n\t\t  (count > 0 - вправо, count < 0 - влево)'
 
-    def execute(self):
-        if len(self.stack) < 2 or self.stack[-2] < 0:
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: Direction, cc: CodelChooser):
+        if len(stack) < 2 or stack[-2] < 0:
             return
-        count = self.stack.pop()
-        depth = self.stack.pop()
+        count = stack.pop()
+        depth = stack.pop()
         self.arguments = (depth, count)
         if depth == 1:
             return
         count %= depth
         index = -abs(count) + depth * (count < 0)
-        self.stack[-depth:] = self.stack[index:] + self.stack[-depth:index]
+        stack[-depth:] = stack[index:] + stack[-depth:index]
 
 
-class InInt(BaseCommand):
-    def __init__(self, stack: [], step_by_step: bool):
-        super().__init__(stack)
-        self.step_by_step = step_by_step
-        self.name = 'in_int'
-        self.description = 'кладет введенное с консоли целое число в стэк'
+class In(BaseCommand):
+    def __init__(self, in_stream, error_stream):
+        self.error_stream = error_stream
+        self.in_stream = in_stream
 
-    def execute(self):
-        if self.step_by_step:
-            input_value = input('ВВОД:')
-        else:
-            input_value = input()
-        try:
-            self.stack.append(int(input_value))
-            self.arguments = input_value
-        except ValueError:
+    def _read_value(self) -> List[str]:
+        chars = []
+        while True:
+            x = self.in_stream.read(1)
+            if x == '\n' or not x:
+                break
+            chars.append(x)
+        return chars
+
+
+class InInt(In):
+    name = 'in_int'
+    description = 'кладет целое число, считанное с ' \
+                  'указанного потока ввода в стэк'
+
+    def __init__(self, in_stream, error_stream):
+        super().__init__(in_stream, error_stream)
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: 'Direction', cc: 'CodelChooser'):
+        chars = self._read_value()
+        if len(chars) == 0:
             return
-
-
-class InChar(BaseCommand):
-    def __init__(self, stack: [], step_by_step: bool):
-        super().__init__(stack)
-        self.step_by_step = step_by_step
-        self.name = 'in_char'
-        self.description = 'кладет ord(введенный в консоль символ) в стэк'
-
-    def execute(self):
-        if self.step_by_step:
-            input_value = input('ВВОД:')
-        else:
-            input_value = input()
-        try:
-            if len(input_value) > 1:
+        number = 0
+        k = 1
+        sign = chars[0]
+        if not sign.isdigit():
+            if sign == '-':
+                k = -1
+            elif sign != '+':
+                exit(1)
+            chars = chars[1:]
+        if len(chars) == 0:
+            return
+        for i in range(len(chars)):
+            if not chars[i].isdigit():
                 return
-            self.stack.append(ord(input_value))
-            self.arguments = input_value
+            number += int(chars[i]) * 10 ** (len(chars) - (i + 1)) * k
+        self.arguments = number
+        stack.append(number)
+
+
+class InChar(In):
+    name = 'in_char'
+    description = 'кладет ord(считанный с указанного потока ввода) в стэк'
+
+    def __init__(self, in_stream, error_stream):
+        super().__init__(in_stream, error_stream)
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: 'Direction', cc: 'CodelChooser'):
+        chars = self._read_value()
+        try:
+            if len(chars) > 1:
+                return
+            stack.append(ord(chars[0]))
+            self.arguments = chars[0]
         except TypeError:
             return
         except ValueError:
             return
 
 
-class OutInt(BaseCommand):
-    def __init__(self, stack: [], step_by_step=False):
-        super().__init__(stack)
-        self.step_by_step = step_by_step
-        self.name = 'out_int'
-        self.description = 'убирает значение из стэка и выводит его в консоль'
+class Out(BaseCommand):
+    def __init__(self, out_stream, error_stream):
+        self.out_stream = out_stream
+        self.error_stream = error_stream
 
-    def execute(self):
-        if len(self.stack) == 0:
+
+class OutInt(Out):
+    name = 'out_int'
+    description = 'убирает значение из стэка и выводит ' \
+                  'его в указанный поток вывода'
+
+    def __init__(self, out_stream, error_stream):
+        super().__init__(out_stream, error_stream)
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: 'Direction', cc: 'CodelChooser'):
+        if len(stack) == 0:
             return
-        out_value = self.stack.pop()
+        out_value = stack.pop()
         self.arguments = out_value
-        if self.step_by_step:
-            print(f'\nВЫВОД:{out_value}\n')
-        else:
-            print(out_value, end='')
+        self.out_stream.write(str(out_value))
 
 
-class OutChar(BaseCommand):
-    def __init__(self, stack: [], step_by_step=False):
-        self.step_by_step = step_by_step
-        super().__init__(stack)
-        self.name = 'out_char'
-        self.description = 'убирает значение из стэка ' \
-                           'и выводит chr(значение) в консоль'
+class OutChar(Out):
+    name = 'out_char'
+    description = 'убирает значение из стэка и выводит chr(значение) ' \
+                  'в указанный поток вывода'
 
-    def execute(self):
-        if len(self.stack) == 0:
+    def __init__(self, out_stream, error_stream):
+        super().__init__(out_stream, error_stream)
+
+    def __call__(self, stack: List[int], len_current_block: int,
+                 dp: 'Direction', cc: 'CodelChooser'):
+        if len(stack) == 0:
             return
         try:
-            out_value = self.stack.pop()
-            if self.step_by_step:
-                print(f'\nВЫВОД:{chr(out_value)}\n')
-            else:
-                print(chr(out_value), end='')
-            self.arguments = out_value
+            out_value = chr(stack.pop())
         except ValueError:
             return
+        self.out_stream.write(out_value)
+        self.arguments = out_value

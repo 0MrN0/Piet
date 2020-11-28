@@ -1,14 +1,15 @@
-from interpreter.piet_driver import PietDriver, CC, Direction
+from interpreter.piet_driver import PietDriver, CodelChooser, Direction
 from interpreter.picture import Picture
 
 import pytest
-import unittest.mock
+import sys
 
 
 @pytest.fixture
 def driver():
-    return PietDriver(Picture.open_picture(
-        'tests/test_pictures/palette.png'), False)
+    return PietDriver(
+        Picture.open_picture('tests/test_pictures/palette.png'),
+        False, sys.stdin, sys.stdout, sys.stderr)
 
 
 @pytest.mark.parametrize(
@@ -50,14 +51,14 @@ def test_find_uttermost_by_dp(driver,
 
 @pytest.mark.parametrize(
     ('dp', 'cc', 'expected_direction'), [
-        (Direction.RIGHT, CC.RIGHT, Direction.DOWN),
-        (Direction.RIGHT, CC.LEFT, Direction.UP),
-        (Direction.LEFT, CC.RIGHT, Direction.UP),
-        (Direction.LEFT, CC.LEFT, Direction.DOWN),
-        (Direction.DOWN, CC.RIGHT, Direction.LEFT),
-        (Direction.DOWN, CC.LEFT, Direction.RIGHT),
-        (Direction.UP, CC.RIGHT, Direction.RIGHT),
-        (Direction.UP, CC.LEFT, Direction.LEFT)
+        (Direction.RIGHT, CodelChooser.RIGHT, Direction.DOWN),
+        (Direction.RIGHT, CodelChooser.LEFT, Direction.UP),
+        (Direction.LEFT, CodelChooser.RIGHT, Direction.UP),
+        (Direction.LEFT, CodelChooser.LEFT, Direction.DOWN),
+        (Direction.DOWN, CodelChooser.RIGHT, Direction.LEFT),
+        (Direction.DOWN, CodelChooser.LEFT, Direction.RIGHT),
+        (Direction.UP, CodelChooser.RIGHT, Direction.RIGHT),
+        (Direction.UP, CodelChooser.LEFT, Direction.LEFT)
     ]
 )
 def test_get_corner_direction(driver, dp, cc, expected_direction):
@@ -69,21 +70,20 @@ def test_get_corner_direction(driver, dp, cc, expected_direction):
 
 def test_process_picture(driver):
     driver.change_picture(
-        Picture.open_picture('tests/test_pictures/comparsion_int.png'))
-    with unittest.mock.patch('builtins.input', return_value=5):
-        driver.process_picture()
+        Picture.open_picture('tests/test_pictures/print_TLEN_use_switch.png'))
+    driver.process_picture()
 
 
 @pytest.mark.parametrize(
     ('start_xy', 'dp', 'cc', 'expected_xy'), [
-        ((4, 2), Direction.RIGHT, CC.LEFT, (4, 0)),
-        ((4, 2), Direction.RIGHT, CC.RIGHT, (4, 4)),
-        ((2, 2), Direction.DOWN, CC.LEFT, (4, 2)),
-        ((2, 2), Direction.DOWN, CC.RIGHT, (0, 2)),
-        ((4, 0), Direction.UP, CC.LEFT, (3, 0)),
-        ((3, 0), Direction.UP, CC.RIGHT, (4, 0)),
-        ((4, 1), Direction.LEFT, CC.LEFT, (4, 4)),
-        ((4, 1), Direction.LEFT, CC.RIGHT, (4, 0)),
+        ((4, 2), Direction.RIGHT, CodelChooser.LEFT, (4, 0)),
+        ((4, 2), Direction.RIGHT, CodelChooser.RIGHT, (4, 4)),
+        ((2, 2), Direction.DOWN, CodelChooser.LEFT, (4, 2)),
+        ((2, 2), Direction.DOWN, CodelChooser.RIGHT, (0, 2)),
+        ((4, 0), Direction.UP, CodelChooser.LEFT, (3, 0)),
+        ((3, 0), Direction.UP, CodelChooser.RIGHT, (4, 0)),
+        ((4, 1), Direction.LEFT, CodelChooser.LEFT, (4, 4)),
+        ((4, 1), Direction.LEFT, CodelChooser.RIGHT, (4, 0)),
     ]
 )
 def test_find_uttermost_by_cc(driver, start_xy, dp, cc, expected_xy):
