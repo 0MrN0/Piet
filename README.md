@@ -11,12 +11,11 @@ pip install -r requirements.txt
 ## Запуск
 ### Обычный режим исполнения
 ```bash
-python __main__.py *picture_name*
+python -m interpreter picture_name
 ```
 ### Пошаговый режим исполнения
 ```bash
-python __main__.py -s *picture_name*
-python -m interpreter picture_name
+python -m interpreter -s picture_name
 ```
 
 где picture_name - путь до программы.
