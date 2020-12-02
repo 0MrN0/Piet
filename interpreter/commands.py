@@ -229,9 +229,6 @@ class InInt(In):
     description = 'кладет целое число, считанное с ' \
                   'указанного потока ввода в стэк'
 
-    def __init__(self, in_stream, error_stream):
-        super().__init__(in_stream, error_stream)
-
     def __call__(self, stack: List[int], len_current_block: int,
                  dp: 'Direction', cc: 'CodelChooser'):
         chars = self._read_value()
@@ -260,9 +257,6 @@ class InChar(In):
     name = 'in_char'
     description = 'кладет ord(считанный с указанного потока ввода) в стэк'
 
-    def __init__(self, in_stream, error_stream):
-        super().__init__(in_stream, error_stream)
-
     def __call__(self, stack: List[int], len_current_block: int,
                  dp: 'Direction', cc: 'CodelChooser'):
         chars = self._read_value()
@@ -288,9 +282,6 @@ class OutInt(Out):
     description = 'убирает значение из стэка и выводит ' \
                   'его в указанный поток вывода'
 
-    def __init__(self, out_stream, error_stream):
-        super().__init__(out_stream, error_stream)
-
     def __call__(self, stack: List[int], len_current_block: int,
                  dp: 'Direction', cc: 'CodelChooser'):
         if len(stack) == 0:
@@ -304,9 +295,6 @@ class OutChar(Out):
     name = 'out_char'
     description = 'убирает значение из стэка и выводит chr(значение) ' \
                   'в указанный поток вывода'
-
-    def __init__(self, out_stream, error_stream):
-        super().__init__(out_stream, error_stream)
 
     def __call__(self, stack: List[int], len_current_block: int,
                  dp: 'Direction', cc: 'CodelChooser'):
